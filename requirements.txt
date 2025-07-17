@@ -1,1 +1,7 @@
 google-generativeai
+concurrent.futures
+sys
+re
+subprocess
+datetime
+os
