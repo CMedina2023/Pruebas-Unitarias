@@ -37,33 +37,32 @@ jobs:
       run: |
         npm install -g jest
 
-    - name: Generar y ejecutar pruebas para Python
+    - name: Ejecutar generador de pruebas para Python
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        echo "🧪 Generando y ejecutando pruebas para Python..."
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas/python --lenguaje python
+        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje python
 
-    - name: Generar y ejecutar pruebas para JavaScript
+    - name: Ejecutar generador de pruebas para JavaScript
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        echo "🧪 Generando y ejecutando pruebas para JavaScript..."
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas/javascript --lenguaje javascript
+        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje javascript
 
-    - name: Generar y ejecutar pruebas para Java
+    - name: Ejecutar generador de pruebas para Java
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        echo "🧪 Generando y ejecutando pruebas para Java..."
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas/java --lenguaje java
+        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje java
+
+    - name: Verificar archivos generados
+      run: |
+        echo "Archivos HTML encontrados:"
+        find pruebas_generadas -type f -name "*.html"
 
     - name: Subir reportes HTML como artefactos
       uses: actions/upload-artifact@v4
       with:
         name: reportes-pruebas
-        path: |
-          pruebas_generadas/python/*.html
-          pruebas_generadas/javascript/*.html
-          pruebas_generadas/java/*.html
+        path: pruebas_generadas/**/*.html
 
