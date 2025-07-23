@@ -1,157 +1,97 @@
 import os
-import shutil
-import subprocess
-import sys
 import datetime
-import zipfile
+import subprocess
+import google.generativeai as genai
 
+# Inicializa la API de Gemini con la clave
+def inicializar_gemini():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise EnvironmentError("❌ Falta la variable de entorno GEMINI_API_KEY.")
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-pro")
+
+# Genera una prueba unitaria usando Gemini
+def generar_prueba_con_ia(contenido_modulo, lenguaje):
+    prompt = f"""
+Eres un experto en desarrollo de software y testing automatizado.
+Tu tarea es generar una prueba unitaria para el siguiente módulo escrito en {lenguaje}.
+No expliques nada, solo responde con el código de la prueba unitaria.
+
+Código del módulo:
+\"\"\"
+{contenido_modulo}
+\"\"\"
+    """
+    modelo = inicializar_gemini()
+    respuesta = modelo.generate_content(prompt)
+    return respuesta.text.strip() if hasattr(respuesta, 'text') else ""
+
+# Genera un nombre único de carpeta si ya existe
+def generar_nombre_unico(directorio_base):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_base = f"{directorio_base}_{timestamp}"
+    nombre_final = nombre_base
+    contador = 1
+    while os.path.exists(nombre_final):
+        nombre_final = f"{nombre_base}_{contador}"
+        contador += 1
+    return nombre_final
+
+# Genera pruebas y ejecuta según lenguaje
 def generar_pruebas_desde_directorio(source_dir, output_dir, lenguaje):
     print(f"Iniciando generación para: {source_dir}")
+    
+    subcarpeta_lenguaje = os.path.join(output_dir, lenguaje)
+    pruebas_dir = generar_nombre_unico(subcarpeta_lenguaje)
+    os.makedirs(pruebas_dir, exist_ok=True)
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    for archivo in os.listdir(source_dir):
+        if archivo.endswith(".py") and lenguaje == "python" or \
+           archivo.endswith(".js") and lenguaje == "javascript" or \
+           archivo.endswith(".java") and lenguaje == "java":
+            
+            ruta_archivo = os.path.join(source_dir, archivo)
+            with open(ruta_archivo, 'r', encoding='utf-8') as f:
+                contenido = f.read()
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    pruebas_dir = os.path.join(output_dir, f"pruebas_generadas_{timestamp}")
-    os.makedirs(pruebas_dir)
+            prueba = generar_prueba_con_ia(contenido, lenguaje)
+            nombre_prueba = f"test_{archivo}"
+            ruta_prueba = os.path.join(pruebas_dir, nombre_prueba)
 
-    archivos_fuente = [
-        f for f in os.listdir(source_dir)
-        if f.endswith(('.py', '.js', '.java'))
-    ]
-
-    for archivo in archivos_fuente:
-        ruta_archivo = os.path.join(source_dir, archivo)
-        with open(ruta_archivo, 'r', encoding='utf-8') as file:
-            contenido = file.read()
-
-        nombre_modulo = os.path.splitext(archivo)[0]
-        pruebas_generadas = generar_pruebas(contenido, lenguaje, nombre_modulo)
-
-        if pruebas_generadas:
-            ruta_prueba = os.path.join(pruebas_dir, f"test_{nombre_modulo}.{ext_lenguaje(lenguaje)}")
             with open(ruta_prueba, 'w', encoding='utf-8') as f:
-                f.write(pruebas_generadas)
+                f.write(prueba)
 
-            ejecutar_prueba_y_generar_reporte(ruta_prueba, lenguaje, pruebas_dir)
-        else:
-            print(f"No se generaron pruebas para {nombre_modulo}")
+            print(f"✅ Prueba generada: {ruta_prueba}")
 
-    copiar_modulos_fuente(source_dir, pruebas_dir)
+    ejecutar_pruebas(pruebas_dir, lenguaje)
 
-    comprimir_reportes(pruebas_dir)
-
-def ext_lenguaje(lenguaje):
-    return {
-        'python': 'py',
-        'javascript': 'js',
-        'java': 'java'
-    }.get(lenguaje.lower(), 'txt')
-
-def generar_pruebas(contenido, lenguaje, nombre_modulo):
-    if lenguaje.lower() == 'python':
-        return f"""import unittest
-import {nombre_modulo}
-
-class Test{nombre_modulo.capitalize()}(unittest.TestCase):
-    def test_placeholder(self):
-        self.assertTrue(True)
-
-if __name__ == '__main__':
-    unittest.main()
-"""
-    elif lenguaje.lower() == 'javascript':
-        return f"""const assert = require('assert');
-const {nombre_modulo} = require('./{nombre_modulo}');
-
-describe('{nombre_modulo} tests', () => {{
-    it('should pass placeholder', () => {{
-        assert.strictEqual(1, 1);
-    }});
-}});
-"""
-    elif lenguaje.lower() == 'java':
-        return f"""import org.junit.Test;
-import static org.junit.Assert.*;
-
-public class Test{nombre_modulo.capitalize()} {{
-    @Test
-    public void testPlaceholder() {{
-        assertTrue(true);
-    }}
-}}
-"""
+def ejecutar_pruebas(pruebas_dir, lenguaje):
+    print(f"🚀 Ejecutando pruebas para: {lenguaje}")
+    if lenguaje == "python":
+        comando = f"pytest {pruebas_dir} --html={pruebas_dir}/reporte.html --self-contained-html"
+    elif lenguaje == "javascript":
+        comando = f"jest {pruebas_dir} --outputFile={pruebas_dir}/reporte.html --reporters=default --reporters=jest-html-reporter"
+    elif lenguaje == "java":
+        # Asume que tienes un runner para JUnit configurado
+        comando = f"echo 'Aquí deberías llamar a Maven o Gradle para ejecutar las pruebas de Java'"
     else:
-        return ""
-
-def ejecutar_prueba_y_generar_reporte(ruta_prueba, lenguaje, output_dir):
-    nombre_archivo = os.path.basename(ruta_prueba)
-    nombre_reporte = f"reporte_{nombre_archivo}.html"
-    ruta_reporte = os.path.join(output_dir, nombre_reporte)
-
-    if lenguaje.lower() == 'python':
-        cmd = [
-            sys.executable,
-            ruta_prueba
-        ]
-    elif lenguaje.lower() == 'javascript':
-        cmd = ['node', ruta_prueba]
-    elif lenguaje.lower() == 'java':
-        cmd = ['javac', ruta_prueba]
-    else:
+        print(f"Lenguaje no soportado: {lenguaje}")
         return
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=output_dir)
-        salida = result.stdout
-        errores = result.stderr
-    except Exception as e:
-        salida = ""
-        errores = str(e)
+    resultado = subprocess.run(comando, shell=True)
+    if resultado.returncode != 0:
+        print(f"❌ Fallaron algunas pruebas de {lenguaje}.")
+    else:
+        print(f"✅ Pruebas exitosas para {lenguaje}.")
 
-    with open(ruta_reporte, 'w', encoding='utf-8') as f:
-        f.write(f"<h2>Reporte de Pruebas para {nombre_archivo}</h2>")
-        f.write("<h3>Salida estándar</h3>")
-        f.write(f"<pre>{salida}</pre>")
-        f.write("<h3>Errores</h3>")
-        f.write(f"<pre>{errores}</pre>")
-
-def comprimir_reportes(directorio):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    zip_filename = f"reportes-pruebas_{timestamp}.zip"
-    zip_path = os.path.join(directorio, zip_filename)
-
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
-        for root, _, files in os.walk(directorio):
-            for file in files:
-                if file.endswith('.html'):
-                    zipf.write(os.path.join(root, file), arcname=file)
-
-    print(f"✅ Reportes comprimidos en: {zip_path}")
-
-def copiar_modulos_fuente(directorio_fuente, directorio_destino):
-    """
-    Copia todos los archivos .py, .js y .java del directorio fuente al destino.
-    Así, los tests generados pueden importar correctamente los módulos.
-    """
-    for archivo in os.listdir(directorio_fuente):
-        if archivo.endswith(('.py', '.js', '.java')):
-            ruta_origen = os.path.join(directorio_fuente, archivo)
-            ruta_destino = os.path.join(directorio_destino, archivo)
-            try:
-                shutil.copyfile(ruta_origen, ruta_destino)
-                print(f"📦 Copiado: {archivo} ➝ {directorio_destino}")
-            except Exception as e:
-                print(f"❌ Error al copiar {archivo}: {e}")
-
+# Script principal
 if __name__ == "__main__":
     import argparse
-
-    parser = argparse.ArgumentParser(description="Generador de Pruebas Multilenguaje")
-    parser.add_argument('--source_dir', type=str, required=True, help='Directorio con módulos fuente')
-    parser.add_argument('--output_dir', type=str, required=True, help='Directorio para resultados')
-    parser.add_argument('--lenguaje', type=str, required=True, choices=['python', 'javascript', 'java'], help='Lenguaje de programación')
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source_dir', required=True)
+    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--lenguaje', choices=['python', 'javascript', 'java'], required=True)
     args = parser.parse_args()
 
     generar_pruebas_desde_directorio(args.source_dir, args.output_dir, args.lenguaje)
