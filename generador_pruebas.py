@@ -9,7 +9,7 @@ def inicializar_gemini():
     if not api_key:
         raise EnvironmentError("❌ Falta la variable de entorno GEMINI_API_KEY.")
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-pro")
+    return genai.GenerativeModel("models/gemini-1.5-pro-latest")
 
 # Genera una prueba unitaria usando Gemini
 def generar_prueba_con_ia(contenido_modulo, lenguaje):
