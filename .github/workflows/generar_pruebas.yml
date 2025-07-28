@@ -33,7 +33,7 @@ jobs:
 
     - name: Instalar Jest globalmente para JS
       run: |
-        npm install -g jest
+        npm install -g jest jest-html-reporter
 
     - name: Ejecutar generador de pruebas para Python
       env:
@@ -53,20 +53,23 @@ jobs:
       run: |
         python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje java
 
-    - name: Verificar archivos generados
+    - name: Verificar archivos HTML generados
       run: |
-        echo "Archivos HTML encontrados:"
+        echo "::group::Archivos HTML encontrados"
         find pruebas_generadas -type f -name "*.html"
+        echo "::endgroup::"
 
     - name: Subir reportes HTML como artefactos
       uses: actions/upload-artifact@v4
       with:
         name: reportes-pruebas
-        path: pruebas_generadas/**/*.html
+        path: pruebas_generadas/**/**/*.html
 
-    - name: Subir reportes HTML como artefactos
+    - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
       with:
-        name: reportes-pruebas
-        path: pruebas_generadas/**/*.html
-
+        name: pruebas-generadas-codigo
+        path: |
+          pruebas_generadas/**/**/*.py
+          pruebas_generadas/**/**/*.js
+          pruebas_generadas/**/**/*.java
