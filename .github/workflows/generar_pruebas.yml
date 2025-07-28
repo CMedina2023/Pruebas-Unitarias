@@ -60,10 +60,18 @@ jobs:
         echo "::endgroup::"
 
     - name: Subir reportes HTML como artefactos
+      run: |
+        echo "::group::Listando archivos HTML"
+        find pruebas_generadas -type f -name "*.html"
+        echo "::endgroup::"
+        mkdir -p archivos_html
+        find pruebas_generadas -type f -name "*.html" -exec cp {} archivos_html/ \;
+
+    - name: Subir artefactos HTML
       uses: actions/upload-artifact@v4
       with:
         name: reportes-pruebas
-        path: pruebas_generadas/**/**/*.html
+        path: archivos_html
 
     - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
