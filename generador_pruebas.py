@@ -73,8 +73,7 @@ def ejecutar_pruebas(pruebas_dir, lenguaje):
     elif lenguaje == "javascript":
         comando = f"jest {pruebas_dir} --outputFile={pruebas_dir}/reporte.html --reporters=default --reporters=jest-html-reporter"
     elif lenguaje == "java":
-        # Asume que tienes un runner para JUnit configurado
-        comando = f"echo 'Aquí deberías llamar a Maven o Gradle para ejecutar las pruebas de Java'"
+        comando = f"echo 'Llama a Maven o Gradle para ejecutar las pruebas de Java'"
     else:
         print(f"Lenguaje no soportado: {lenguaje}")
         return
@@ -95,4 +94,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generar_pruebas_desde_directorio(args.source_dir, args.output_dir, args.lenguaje)
-
