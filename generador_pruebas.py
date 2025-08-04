@@ -37,15 +37,14 @@ def generar_nombre_unico(directorio_base):
     return nombre_final
 
 # Genera pruebas y ejecuta según lenguaje
-def generar_pruebas_desde_directorio(source_dir, lenguaje):
+def generar_pruebas_desde_directorio(source_dir, lenguaje, output_dir):
     print(f"Iniciando generación para: {source_dir}")
 
-    # Directorio raíz de reportes
-    reportes_root = "Reportes"
-    os.makedirs(reportes_root, exist_ok=True)
+    # Usa el directorio base de salida en vez de la ruta fija
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Carpeta con timestamp
-    subcarpeta_lenguaje = os.path.join(reportes_root, lenguaje)
+    # Carpeta específica por lenguaje con timestamp
+    subcarpeta_lenguaje = os.path.join(output_dir, lenguaje)
     pruebas_dir = generar_nombre_unico(subcarpeta_lenguaje)
     os.makedirs(pruebas_dir, exist_ok=True)
 
@@ -94,6 +93,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_dir', required=True)
     parser.add_argument('--lenguaje', choices=['python', 'javascript', 'java'], required=True)
+    parser.add_argument('--output_dir', required=False, default='Reportes', help='Directorio base para guardar pruebas y reportes')
     args = parser.parse_args()
 
-    generar_pruebas_desde_directorio(args.source_dir, args.lenguaje)
+    generar_pruebas_desde_directorio(args.source_dir, args.lenguaje, args.output_dir)
