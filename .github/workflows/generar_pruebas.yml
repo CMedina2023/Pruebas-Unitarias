@@ -56,16 +56,18 @@ jobs:
     - name: Verificar archivos HTML generados
       run: |
         echo "::group::Archivos HTML encontrados"
-        find pruebas_generadas -type f -name "*.html"
+        find pruebas_generadas -type f -name "*.html" || echo "⚠️ No se encontraron archivos HTML"
         echo "::endgroup::"
 
-    - name: Subir reportes HTML como artefactos
+    - name: Preparar archivos HTML si existen
       run: |
-        echo "::group::Listando archivos HTML"
-        find pruebas_generadas -type f -name "*.html"
-        echo "::endgroup::"
         mkdir -p archivos_html
-        find pruebas_generadas -type f -name "*.html" -exec cp {} archivos_html/ \;
+        html_count=$(find pruebas_generadas -type f -name "*.html" | wc -l)
+        if [ "$html_count" -gt 0 ]; then
+          find pruebas_generadas -type f -name "*.html" -exec cp {} archivos_html/ \;
+        else
+          echo "⚠️ No hay archivos HTML para copiar."
+        fi
 
     - name: Subir artefactos HTML
       uses: actions/upload-artifact@v4
@@ -73,11 +75,22 @@ jobs:
         name: reportes-pruebas
         path: archivos_html
 
+    - name: Verificar cantidad de archivos de pruebas generadas
+      run: |
+        echo "::group::Conteo de archivos de prueba generados"
+        py_count=$(find pruebas_generadas -type f -name "*.py" | wc -l)
+        js_count=$(find pruebas_generadas -type f -name "*.js" | wc -l)
+        java_count=$(find pruebas_generadas -type f -name "*.java" | wc -l)
+        echo "Archivos .py: $py_count"
+        echo "Archivos .js: $js_count"
+        echo "Archivos .java: $java_count"
+        echo "::endgroup::"
+
     - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
       with:
         name: pruebas-generadas-codigo
         path: |
-          pruebas_generadas/**/**/*.py
-          pruebas_generadas/**/**/*.js
-          pruebas_generadas/**/**/*.java
+          pruebas_generadas/**/*.py
+          pruebas_generadas/**/*.js
+          pruebas_generadas/**/*.java
