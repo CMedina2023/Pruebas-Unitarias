@@ -3,7 +3,6 @@ import datetime
 import subprocess
 import google.generativeai as genai
 
-
 # Inicializa la API de Gemini con la clave
 def inicializar_gemini():
     api_key = os.getenv("GEMINI_API_KEY")
@@ -11,7 +10,6 @@ def inicializar_gemini():
         raise EnvironmentError("❌ Falta la variable de entorno GEMINI_API_KEY.")
     genai.configure(api_key=api_key)
     return genai.GenerativeModel("models/gemini-1.5-flash-latest")
-
 
 # Genera una prueba unitaria usando Gemini
 def generar_prueba_con_ia(contenido_modulo, lenguaje):
@@ -27,8 +25,7 @@ Código del módulo:
     respuesta = modelo.generate_content(prompt)
     return respuesta.text.strip() if hasattr(respuesta, 'text') else ""
 
-
-# Genera un nombre único de carpeta si ya existe
+# Genera un nombre único para la subcarpeta de reportes
 def generar_nombre_unico(directorio_base):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_base = f"{directorio_base}_{timestamp}"
@@ -39,12 +36,16 @@ def generar_nombre_unico(directorio_base):
         contador += 1
     return nombre_final
 
-
 # Genera pruebas y ejecuta según lenguaje
-def generar_pruebas_desde_directorio(source_dir, output_dir, lenguaje):
+def generar_pruebas_desde_directorio(source_dir, lenguaje):
     print(f"Iniciando generación para: {source_dir}")
 
-    subcarpeta_lenguaje = os.path.join(output_dir, lenguaje)
+    # Directorio raíz de reportes
+    reportes_root = "Reportes"
+    os.makedirs(reportes_root, exist_ok=True)
+
+    # Carpeta con timestamp
+    subcarpeta_lenguaje = os.path.join(reportes_root, lenguaje)
     pruebas_dir = generar_nombre_unico(subcarpeta_lenguaje)
     os.makedirs(pruebas_dir, exist_ok=True)
 
@@ -68,8 +69,7 @@ def generar_pruebas_desde_directorio(source_dir, output_dir, lenguaje):
 
     ejecutar_pruebas(pruebas_dir, lenguaje)
 
-
-# Ejecuta pruebas dependiendo del lenguaje y genera reporte HTML
+# Ejecuta pruebas y genera reporte HTML
 def ejecutar_pruebas(pruebas_dir, lenguaje):
     print(f"🚀 Ejecutando pruebas para: {lenguaje}")
     if lenguaje == "python":
@@ -88,15 +88,12 @@ def ejecutar_pruebas(pruebas_dir, lenguaje):
     else:
         print(f"✅ Pruebas exitosas para {lenguaje}.")
 
-
 # Script principal
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_dir', required=True)
-    parser.add_argument('--output_dir', required=True)
     parser.add_argument('--lenguaje', choices=['python', 'javascript', 'java'], required=True)
     args = parser.parse_args()
 
-    generar_pruebas_desde_directorio(args.source_dir, args.output_dir, args.lenguaje)
-
+    generar_pruebas_desde_directorio(args.source_dir, args.lenguaje)
