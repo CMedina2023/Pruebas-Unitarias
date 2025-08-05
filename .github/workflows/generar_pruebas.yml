@@ -30,29 +30,45 @@ jobs:
     - name: Instalar dependencias Python
       run: |
         pip install -r requirements.txt
-
     - name: Instalar Jest globalmente para JS
       run: |
         npm install -g jest jest-html-reporter
-
+    - name: Crear carpetas necesarias
+      run: |
+        mkdir -p pruebas_generadas
+        mkdir -p Reportes
     - name: Ejecutar generador de pruebas para Python
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje python
-
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje python
     - name: Ejecutar generador de pruebas para JavaScript
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje javascript
-
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje javascript
     - name: Ejecutar generador de pruebas para Java
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje java
-
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje java
+        
+    - name: Verificar cantidad de archivos de pruebas generadas
+      run: |
+        echo "::group::Conteo de archivos de prueba generados"
+        py_count=$(find pruebas_generadas -type f -name "*.py" | wc -l)
+        js_count=$(find pruebas_generadas -type f -name "*.js" | wc -l)
+        java_count=$(find pruebas_generadas -type f -name "*.java" | wc -l)
+        echo "Archivos .py: $py_count"
+        echo "Archivos .js: $js_count"
+        echo "Archivos .java: $java_count"
+        echo "::endgroup::"
     - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
+      with:
+        name: pruebas-generadas-codigo
+        path: |
+          pruebas_generadas/**/*.py
+          pruebas_generadas/**/*.js
+          pruebas_generadas/**/*.java
 
