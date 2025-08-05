@@ -1,1 +1,6 @@
 google-generativeai
+pytest-html
+pytest
+pytest-html
+selenium
+flake8
