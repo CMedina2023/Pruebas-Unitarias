@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: 📥 Clonar repositorio
-        uses: actions/upload-artifact@v4
+        uses: actions/checkout@v3
 
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v4
@@ -39,14 +39,14 @@ jobs:
 
       - name: 📦 Subir pruebas como artefacto
         if: success()
-        uses: actions/checkout@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pruebas-generadas
           path: pruebas_generadas
 
       - name: 📦 Subir reportes HTML como artefacto
         if: success()
-        uses: actions/checkout@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reportes-html
           path: Reportes
