@@ -2,6 +2,8 @@ import os
 import datetime
 import subprocess
 import google.generativeai as genai
+import re
+import argparse
 
 # Inicializa la API de Gemini con la clave
 def inicializar_gemini():
@@ -12,18 +14,40 @@ def inicializar_gemini():
     return genai.GenerativeModel("models/gemini-1.5-flash-latest")
 
 # Genera una prueba unitaria usando Gemini
-def generar_prueba_con_ia(contenido_modulo, lenguaje):
+def generar_prueba_con_ia(contenido_modulo, lenguaje, nombre_archivo):
+    nombre_modulo = os.path.splitext(nombre_archivo)[0]
+
+    instrucciones_importacion = ""
+    if lenguaje.lower() == "python":
+        instrucciones_importacion = f"""
+El archivo a probar se llama '{nombre_archivo}' y está ubicado en una carpeta llamada 'src_modules'.
+Para importar correctamente su contenido, usa:
+
+import src_modules.{nombre_modulo}
+
+Y accede a sus funciones o clases usando:
+
+src_modules.{nombre_modulo}.MiClase()
+"""
+
     prompt = f"""
 Eres un experto en desarrollo de software y testing automatizado.
 Tu tarea es generar una prueba unitaria para el siguiente módulo escrito en {lenguaje}.
 No expliques nada, solo responde con el código de la prueba unitaria.
+{instrucciones_importacion}
 
 Código del módulo:
 {contenido_modulo}
 """
+
     modelo = inicializar_gemini()
     respuesta = modelo.generate_content(prompt)
-    return respuesta.text.strip() if hasattr(respuesta, 'text') else ""
+    codigo = respuesta.text if hasattr(respuesta, 'text') else ""
+
+    # Limpieza de delimitadores Markdown
+    codigo = re.sub(r"^```(?:python|javascript|java)?\\n?", "", codigo.strip())
+    codigo = re.sub(r"```$", "", codigo.strip())
+    return codigo.strip()
 
 # Genera un nombre único para la subcarpeta de reportes
 def generar_nombre_unico(directorio_base):
@@ -39,11 +63,7 @@ def generar_nombre_unico(directorio_base):
 # Genera pruebas y ejecuta según lenguaje
 def generar_pruebas_desde_directorio(source_dir, lenguaje, output_dir):
     print(f"Iniciando generación para: {source_dir}")
-
-    # Usa el directorio base de salida en vez de la ruta fija
     os.makedirs(output_dir, exist_ok=True)
-
-    # Carpeta específica por lenguaje con timestamp
     subcarpeta_lenguaje = os.path.join(output_dir, lenguaje)
     pruebas_dir = generar_nombre_unico(subcarpeta_lenguaje)
     os.makedirs(pruebas_dir, exist_ok=True)
@@ -57,7 +77,7 @@ def generar_pruebas_desde_directorio(source_dir, lenguaje, output_dir):
             with open(ruta_archivo, 'r', encoding='utf-8') as f:
                 contenido = f.read()
 
-            prueba = generar_prueba_con_ia(contenido, lenguaje)
+            prueba = generar_prueba_con_ia(contenido, lenguaje, archivo)
             nombre_prueba = f"test_{archivo}"
             ruta_prueba = os.path.join(pruebas_dir, nombre_prueba)
 
@@ -89,7 +109,6 @@ def ejecutar_pruebas(pruebas_dir, lenguaje):
 
 # Script principal
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_dir', required=True)
     parser.add_argument('--lenguaje', choices=['python', 'javascript', 'java'], required=True)
@@ -97,3 +116,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     generar_pruebas_desde_directorio(args.source_dir, args.lenguaje, args.output_dir)
+
