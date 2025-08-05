@@ -16,59 +16,20 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Configurar Node.js 18
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Configurar Java 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
     - name: Instalar dependencias Python
       run: |
         pip install -r requirements.txt
-    - name: Instalar Jest globalmente para JS
-      run: |
-        npm install -g jest jest-html-reporter
-    - name: Crear carpetas necesarias
-      run: |
-        mkdir -p pruebas_generadas
-        mkdir -p Reportes
     - name: Ejecutar generador de pruebas para Python
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --lenguaje python
-    - name: Ejecutar generador de pruebas para JavaScript
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: |
-        python generador_pruebas.py --source_dir ./src_modules --lenguaje javascript
-    - name: Ejecutar generador de pruebas para Java
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: |
-        python generador_pruebas.py --source_dir ./src_modules --lenguaje java
-        
-    - name: Verificar cantidad de archivos de pruebas generadas
-      run: |
-        echo "::group::Conteo de archivos de prueba generados"
-        py_count=$(find pruebas_generadas -type f -name "*.py" | wc -l)
-        js_count=$(find pruebas_generadas -type f -name "*.js" | wc -l)
-        java_count=$(find pruebas_generadas -type f -name "*.java" | wc -l)
-        echo "Archivos .py: $py_count"
-        echo "Archivos .js: $js_count"
-        echo "Archivos .java: $java_count"
-        echo "::endgroup::"
+        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje python
+
     - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
       with:
         name: pruebas-generadas-codigo
         path: |
-          pruebas_generadas/**/*.py
-          pruebas_generadas/**/*.js
-          pruebas_generadas/**/*.java
-
+          pruebas_generadas/**/**/*.py
+          pruebas_generadas/**/**/*.js
+          pruebas_generadas/**/**/*.java
