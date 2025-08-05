@@ -2,7 +2,6 @@ name: Generar pruebas y reportes
 
 on:
   push:
-    branches:
   workflow_dispatch:
 
 jobs:
@@ -41,14 +40,14 @@ jobs:
 
       - name: 📦 Subir pruebas como artefacto
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pruebas-generadas
           path: pruebas_generadas
 
       - name: 📦 Subir reportes HTML como artefacto
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reportes-html
           path: Reportes
