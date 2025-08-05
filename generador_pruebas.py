@@ -1,6 +1,5 @@
 import os
 import datetime
-import subprocess
 import google.generativeai as genai
 import re
 import argparse
@@ -17,18 +16,38 @@ def inicializar_gemini():
 def generar_prueba_con_ia(contenido_modulo, lenguaje, nombre_archivo):
     nombre_modulo = os.path.splitext(nombre_archivo)[0]
 
-    instrucciones_importacion = ""
+    # Instrucciones específicas por lenguaje
     if lenguaje.lower() == "python":
         instrucciones_importacion = f"""
 El archivo a probar se llama '{nombre_archivo}' y está ubicado en una carpeta llamada 'src_modules'.
 Para importar correctamente su contenido, usa:
 
-import src_modules.{nombre_modulo}
+    import src_modules.{nombre_modulo}
 
 Y accede a sus funciones o clases usando:
 
-src_modules.{nombre_modulo}.MiClase()
+    src_modules.{nombre_modulo}.MiClase()
 """
+    elif lenguaje.lower() == "javascript":
+        instrucciones_importacion = f"""
+El archivo '{nombre_archivo}' se encuentra en la carpeta 'src_modules'.
+Usa 'require' o 'import' según tu sistema de módulos:
+
+    // CommonJS:
+    const modulo = require('./src_modules/{nombre_modulo}');
+
+    // ES Modules:
+    import * as modulo from './src_modules/{nombre_modulo}.js';
+"""
+    elif lenguaje.lower() == "java":
+        instrucciones_importacion = f"""
+El archivo '{nombre_archivo}' se encuentra en un paquete 'src_modules'.
+Importa la clase adecuadamente si estás usando paquetes:
+
+    import src_modules.{nombre_modulo}.MiClase;
+"""
+    else:
+        instrucciones_importacion = ""
 
     prompt = f"""
 Eres un experto en desarrollo de software y testing automatizado.
@@ -44,12 +63,12 @@ Código del módulo:
     respuesta = modelo.generate_content(prompt)
     codigo = respuesta.text if hasattr(respuesta, 'text') else ""
 
-    # Limpieza de delimitadores Markdown
+    # Limpieza de delimitadores Markdown (por precaución)
     codigo = re.sub(r"^```(?:python|javascript|java)?\\n?", "", codigo.strip())
     codigo = re.sub(r"```$", "", codigo.strip())
     return codigo.strip()
 
-# Genera un nombre único para la subcarpeta de reportes
+# Genera un nombre único para la subcarpeta de pruebas
 def generar_nombre_unico(directorio_base):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_base = f"{directorio_base}_{timestamp}"
@@ -60,7 +79,7 @@ def generar_nombre_unico(directorio_base):
         contador += 1
     return nombre_final
 
-# Genera pruebas y ejecuta según lenguaje
+# Genera pruebas y guarda los archivos
 def generar_pruebas_desde_directorio(source_dir, lenguaje, output_dir):
     print(f"Iniciando generación para: {source_dir}")
     os.makedirs(output_dir, exist_ok=True)
@@ -86,34 +105,16 @@ def generar_pruebas_desde_directorio(source_dir, lenguaje, output_dir):
 
             print(f"✅ Prueba generada: {ruta_prueba}")
 
-    ejecutar_pruebas(pruebas_dir, lenguaje)
-
-# Ejecuta pruebas y genera reporte HTML
-def ejecutar_pruebas(pruebas_dir, lenguaje):
-    print(f"🚀 Ejecutando pruebas para: {lenguaje}")
-    if lenguaje == "python":
-        comando = f"pytest {pruebas_dir} --html={pruebas_dir}/reporte.html --self-contained-html"
-    elif lenguaje == "javascript":
-        comando = f"jest {pruebas_dir} --outputFile={pruebas_dir}/reporte.html --reporters=default --reporters=jest-html-reporter"
-    elif lenguaje == "java":
-        comando = f"echo 'Aquí deberías llamar a Maven o Gradle para ejecutar las pruebas de Java'"
-    else:
-        print(f"Lenguaje no soportado: {lenguaje}")
-        return
-
-    resultado = subprocess.run(comando, shell=True)
-    if resultado.returncode != 0:
-        print(f"❌ Fallaron algunas pruebas de {lenguaje}.")
-    else:
-        print(f"✅ Pruebas exitosas para {lenguaje}.")
-
 # Script principal
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_dir', required=True)
     parser.add_argument('--lenguaje', choices=['python', 'javascript', 'java'], required=True)
-    parser.add_argument('--output_dir', required=False, default='Reportes', help='Directorio base para guardar pruebas y reportes')
+    parser.add_argument('--output_dir', required=False, default='Reportes', help='Directorio base para guardar las pruebas')
     args = parser.parse_args()
 
     generar_pruebas_desde_directorio(args.source_dir, args.lenguaje, args.output_dir)
+
+
+
 
