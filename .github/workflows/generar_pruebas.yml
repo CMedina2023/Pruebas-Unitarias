@@ -19,17 +19,32 @@ jobs:
     - name: Instalar dependencias Python
       run: |
         pip install -r requirements.txt
+
     - name: Ejecutar generador de pruebas para Python
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje python
 
+    - name: Ejecutar tests y generar reporte HTML dinámico
+      id: run_tests
+      run: |
+        mkdir -p reports
+        REPORT_PATH="reports/report_$(date +%Y%m%d_%H%M%S).html"
+        pytest ./pruebas_generadas --html=$REPORT_PATH || true
+        echo "artifactPath=$REPORT_PATH" >> $GITHUB_OUTPUT
+
     - name: Subir archivos de pruebas generadas (.py, .js, .java)
       uses: actions/upload-artifact@v4
       with:
         name: pruebas-generadas-codigo
         path: |
-          pruebas_generadas/**/**/*.py
-          pruebas_generadas/**/**/*.js
-          pruebas_generadas/**/**/*.java
+          pruebas_generadas/**/*.py
+          pruebas_generadas/**/*.js
+          pruebas_generadas/**/*.java
+
+    - name: Subir reporte de tests HTML
+      uses: actions/upload-artifact@v4
+      with:
+        name: reporte-tests-html
+        path: ${{ steps.run_tests.outputs.artifactPath }}
