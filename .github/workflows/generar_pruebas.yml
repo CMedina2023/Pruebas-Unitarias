@@ -35,36 +35,41 @@ jobs:
       run: |
         npm install -g jest jest-html-reporter
 
+    - name: Crear carpetas necesarias
+      run: |
+        mkdir -p pruebas_generadas
+        mkdir -p Reportes
+
     - name: Ejecutar generador de pruebas para Python
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje python
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje python
 
     - name: Ejecutar generador de pruebas para JavaScript
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje javascript
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje javascript
 
     - name: Ejecutar generador de pruebas para Java
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
-        python generador_pruebas.py --source_dir ./src_modules --output_dir ./pruebas_generadas --lenguaje java
+        python generador_pruebas.py --source_dir ./src_modules --lenguaje java
 
     - name: Verificar archivos HTML generados
       run: |
         echo "::group::Archivos HTML encontrados"
-        find pruebas_generadas -type f -name "*.html" || echo "⚠️ No se encontraron archivos HTML"
+        find Reportes -type f -name "*.html" || echo "⚠️ No se encontraron archivos HTML"
         echo "::endgroup::"
 
     - name: Preparar archivos HTML si existen
       run: |
         mkdir -p archivos_html
-        html_count=$(find pruebas_generadas -type f -name "*.html" | wc -l)
+        html_count=$(find Reportes -type f -name "*.html" | wc -l)
         if [ "$html_count" -gt 0 ]; then
-          find pruebas_generadas -type f -name "*.html" -exec cp {} archivos_html/ \;
+          find Reportes -type f -name "*.html" -exec cp {} archivos_html/ \;
         else
           echo "⚠️ No hay archivos HTML para copiar."
         fi
@@ -94,3 +99,4 @@ jobs:
           pruebas_generadas/**/*.py
           pruebas_generadas/**/*.js
           pruebas_generadas/**/*.java
+
